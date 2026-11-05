@@ -1752,15 +1752,7 @@ fn get_security_context<'a>(
 
     #[cfg(all(feature = "smack", target_os = "linux"))]
     if config.smack_supported {
-        // For SMACK, use the path to get the label
-        // If must_dereference is true, we follow the symlink
-        let target_path = if must_dereference {
-            fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf())
-        } else {
-            path.to_path_buf()
-        };
-
-        return uucore::smack::get_smack_label_for_path(&target_path)
+        return uucore::smack::get_smack_label_for_path(path, must_dereference)
             .map_or(Cow::Borrowed(SUBSTITUTE_STRING), Cow::Owned);
     }
 

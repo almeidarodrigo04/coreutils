@@ -77,12 +77,21 @@ pub fn set_smack_label_for_self(label: &str) -> Result<(), SmackError> {
 }
 
 /// Gets the SMACK label for a filesystem path via xattr.
-pub fn get_smack_label_for_path(path: &Path) -> Result<String, SmackError> {
+///
+/// With `dereference`, gets the label of the target of a symlink instead of the
+/// link itself; following the link is left to the kernel.
+pub fn get_smack_label_for_path(path: &Path, dereference: bool) -> Result<String, SmackError> {
     if !is_smack_enabled() {
         return Err(SmackError::SmackNotEnabled);
     }
 
-    match xattr::get(path, "security.SMACK64") {
+    let label = if dereference {
+        xattr::get_deref(path, "security.SMACK64")
+    } else {
+        xattr::get(path, "security.SMACK64")
+    };
+
+    match label {
         Ok(Some(value)) => Ok(String::from_utf8_lossy(&value).trim().to_string()),
         Ok(None) => Err(SmackError::LabelRetrievalFailure(io::Error::new(
             io::ErrorKind::NotFound,
